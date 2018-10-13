@@ -5,41 +5,49 @@
 	<style type="text/css"></style>
 </head>
 <body>
-	<center>
-	<input type="file" onchange="previewFile()"><br><br>
-    <img src="" height="200" alt="Image preview">
-    <p id="ocrText">OCR Result</p>
+	
+    <center>
+	<input id="inputFileToLoad" type="file" onchange="encodeImageFileAsURL();" />
+    <div id="imgTest"></div>
+    <p id="ocrOutput">OCR Result</p>
     </center>
+    <script type='text/javascript'>
+    function encodeImageFileAsURL() {
 
-	<script type="text/javascript">
-	function previewFile(){
-    var preview = document.querySelector('img'); //selects the query named img
-    var file    = document.querySelector('input[type=file]').files[0]; //sames as here
-    var reader  = new FileReader();
+    var filesSelected = document.getElementById("inputFileToLoad").files;
+    
+    if (filesSelected.length > 0) {
 
-    reader.onloadend = function () {
-        preview.src = reader.result;
-    }
+        var fileToLoad = filesSelected[0];
+        var fileReader = new FileReader();
 
-    if (file) {
-        reader.readAsDataURL(file); //reads the data as a URL
-    } else {
-        preview.src = "";
-    }
+        fileReader.onload = function(fileLoadedEvent) {
 
-       
-  }
+        var srcData = fileLoadedEvent.target.result; // <--- data: base64
+        var newImage = document.createElement('img');
+        
+        newImage.src = srcData;
+        document.getElementById("imgTest").innerHTML = newImage.outerHTML;
+        
+        console.log(srcData);
 
- 	previewFile();  //calls the function named previewFile()
+        var request = new XMLHttpRequest();
+        request.open('GET', "http:localhost:5000/ocr?img="+srcData, true);
 
-    var request = new XMLHttpRequest();
-    request.open('GET', 'http:localhost:5000/ocr', true);
-    request.onload = function(){
+        request.onload = function(){
+        
         var data = JSON.parse(this.response);
-        console.log(data.movie);
+        document.getElementById("ocrOutput").innerHTML = data.ocrText;
+        console.log(data.ocrText);
+        }
+        
+        request.send();
     }
-    request.send()
-	</script>
+    fileReader.readAsDataURL(fileToLoad);
+
+    }
+  }
+</script>
 
 </body>
 </html>
