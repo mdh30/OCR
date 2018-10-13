@@ -32,8 +32,8 @@
         console.log(srcData);
 
         var request = new XMLHttpRequest();
-        request.open('GET', "http:localhost:5000/ocr?img="+srcData, true);
 
+        request.open('GET', "http:localhost:5000/ocr?img="+srcData, true);
         request.onload = function(){
         
         var data = JSON.parse(this.response);
