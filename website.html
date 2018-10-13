@@ -7,32 +7,38 @@
 <body>
 	<center>
 	<input type="file" onchange="previewFile()"><br><br>
-	<img src="" height="200" alt="Image preview">
-	<center>
-
-
+    <img src="" height="200" alt="Image preview">
+    <p id="ocrText">OCR Result</p>
+    </center>
 
 	<script type="text/javascript">
 	function previewFile(){
-       var preview = document.querySelector('img'); //selects the query named img
-       var file    = document.querySelector('input[type=file]').files[0]; //sames as here
-       var reader  = new FileReader();
+    var preview = document.querySelector('img'); //selects the query named img
+    var file    = document.querySelector('input[type=file]').files[0]; //sames as here
+    var reader  = new FileReader();
 
-       reader.onloadend = function () {
-           preview.src = reader.result;
-       }
+    reader.onloadend = function () {
+        preview.src = reader.result;
+    }
 
-       if (file) {
-           reader.readAsDataURL(file); //reads the data as a URL
-       } else {
-           preview.src = "";
-       }
+    if (file) {
+        reader.readAsDataURL(file); //reads the data as a URL
+    } else {
+        preview.src = "";
+    }
 
        
   }
 
- 	 previewFile();  //calls the function named previewFile()
-  
+ 	previewFile();  //calls the function named previewFile()
+
+    var request = new XMLHttpRequest();
+    request.open('GET', 'http:localhost:5000/ocr', true);
+    request.onload = function(){
+        var data = JSON.parse(this.response);
+        console.log(data.movie);
+    }
+    request.send()
 	</script>
 
 </body>
