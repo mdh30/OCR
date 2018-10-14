@@ -152,139 +152,143 @@ def include_box(index, h_, contour):
         print( "\t keeping")
     return True
 
-# Load the image
-orig_img = cv2.imread(input_file)
 
-# Add a border to the image for processing sake
-img = cv2.copyMakeBorder(orig_img, 50, 50, 50, 50, cv2.BORDER_CONSTANT)
+# Main function to call
+def process_img(input_file, output_file):
 
-# Calculate the width and height of the image
-img_y = len(img)
-img_x = len(img[0])
+    # Load the image
+    orig_img = cv2.imread(input_file)
 
-if DEBUG:
-    print( "Image is " + str(len(img)) + "x" + str(len(img[0])))
+    # Add a border to the image for processing sake
+    img = cv2.copyMakeBorder(orig_img, 50, 50, 50, 50, cv2.BORDER_CONSTANT)
 
-#Split out each channel
-blue, green, red = cv2.split(img)
+    # Calculate the width and height of the image
+    img_y = len(img)
+    img_x = len(img[0])
 
-# Run canny edge detection on each channel
-blue_edges = cv2.Canny(blue, 200, 250)
-green_edges = cv2.Canny(green, 200, 250)
-red_edges = cv2.Canny(red, 200, 250)
-
-# Join edges back into image
-edges = blue_edges | green_edges | red_edges
-
-# Find the contours
-_, contours, hierarchy= cv2.findContours(edges.copy(), cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)
-
-hierarchy = hierarchy[0]
-
-if DEBUG:
-    processed = edges.copy()
-    rejected = edges.copy()
-
-# These are the boxes that we are determining
-keepers = []
-
-# For each contour, find the bounding rectangle and decide
-# if it's one we care about
-for index_, contour_ in enumerate(contours):
     if DEBUG:
-        print( "Processing #%d" % index_)
+        print( "Image is " + str(len(img)) + "x" + str(len(img[0])))
 
-    x, y, w, h = cv2.boundingRect(contour_)
+    #Split out each channel
+    blue, green, red = cv2.split(img)
 
-    # Check the contour and it's bounding box
-    if keep(contour_) and include_box(index_, hierarchy, contour_):
-        # It's a winner!
-        keepers.append([contour_, [x, y, w, h]])
+    # Run canny edge detection on each channel
+    blue_edges = cv2.Canny(blue, 200, 250)
+    green_edges = cv2.Canny(green, 200, 250)
+    red_edges = cv2.Canny(red, 200, 250)
+
+    # Join edges back into image
+    edges = blue_edges | green_edges | red_edges
+
+    # Find the contours
+    _, contours, hierarchy= cv2.findContours(edges.copy(), cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)
+
+    hierarchy = hierarchy[0]
+
+    if DEBUG:
+        processed = edges.copy()
+        rejected = edges.copy()
+
+    # These are the boxes that we are determining
+    keepers = []
+
+    # For each contour, find the bounding rectangle and decide
+    # if it's one we care about
+    for index_, contour_ in enumerate(contours):
         if DEBUG:
-            cv2.rectangle(processed, (x, y), (x + w, y + h), (100, 100, 100), 1)
-            cv2.putText(processed, str(index_), (x, y - 5), cv2.FONT_HERSHEY_PLAIN, 1, (255, 255, 255))
-    else:
+            print( "Processing #%d" % index_)
+
+        x, y, w, h = cv2.boundingRect(contour_)
+
+        # Check the contour and it's bounding box
+        if keep(contour_) and include_box(index_, hierarchy, contour_):
+            # It's a winner!
+            keepers.append([contour_, [x, y, w, h]])
+            if DEBUG:
+                cv2.rectangle(processed, (x, y), (x + w, y + h), (100, 100, 100), 1)
+                cv2.putText(processed, str(index_), (x, y - 5), cv2.FONT_HERSHEY_PLAIN, 1, (255, 255, 255))
+        else:
+            if DEBUG:
+                cv2.rectangle(rejected, (x, y), (x + w, y + h), (100, 100, 100), 1)
+                cv2.putText(rejected, str(index_), (x, y - 5), cv2.FONT_HERSHEY_PLAIN, 1, (255, 255, 255))
+
+    # Make a white copy of our image
+    new_image = edges.copy()
+    new_image.fill(255)
+    boxes = []
+
+    # For each box, find the foreground and background intensities
+    for index_, (contour_, box) in enumerate(keepers):
+
+        # Find the average intensity of the edge pixels to
+        # determine the foreground intensity
+        fg_int = 0.0
+        for p in contour_:
+            fg_int += ii(p[0][0], p[0][1])
+
+        fg_int /= len(contour_)
         if DEBUG:
-            cv2.rectangle(rejected, (x, y), (x + w, y + h), (100, 100, 100), 1)
-            cv2.putText(rejected, str(index_), (x, y - 5), cv2.FONT_HERSHEY_PLAIN, 1, (255, 255, 255))
+            print( "FG Intensity for #%d = %d" % (index_, fg_int))
 
-# Make a white copy of our image
-new_image = edges.copy()
-new_image.fill(255)
-boxes = []
+        # Find the intensity of three pixels going around the
+        # outside of each corner of the bounding box to determine
+        # the background intensity
+        x_, y_, width, height = box
+        bg_int = \
+            [
+                # bottom left corner 3 pixels
+                ii(x_ - 1, y_ - 1),
+                ii(x_ - 1, y_),
+                ii(x_, y_ - 1),
 
-# For each box, find the foreground and background intensities
-for index_, (contour_, box) in enumerate(keepers):
+                # bottom right corner 3 pixels
+                ii(x_ + width + 1, y_ - 1),
+                ii(x_ + width, y_ - 1),
+                ii(x_ + width + 1, y_),
 
-    # Find the average intensity of the edge pixels to
-    # determine the foreground intensity
-    fg_int = 0.0
-    for p in contour_:
-        fg_int += ii(p[0][0], p[0][1])
+                # top left corner 3 pixels
+                ii(x_ - 1, y_ + height + 1),
+                ii(x_ - 1, y_ + height),
+                ii(x_, y_ + height + 1),
 
-    fg_int /= len(contour_)
+                # top right corner 3 pixels
+                ii(x_ + width + 1, y_ + height + 1),
+                ii(x_ + width, y_ + height + 1),
+                ii(x_ + width + 1, y_ + height)
+            ]
+
+        # Find the median of the background
+        # pixels determined above
+        bg_int = np.median(bg_int)
+
+        if DEBUG:
+            print( "BG Intensity for #%d = %s" % (index_, repr(bg_int)))
+
+        # Determine if the box should be inverted
+        if fg_int >= bg_int:
+            fg = 255
+            bg = 0
+        else:
+            fg = 0
+            bg = 255
+
+            # Loop through every pixel in the box and color the
+            # pixel accordingly
+        for x in range(x_, x_ + width):
+            for y in range(y_, y_ + height):
+                if y >= img_y or x >= img_x:
+                    if DEBUG:
+                        print( "pixel out of bounds (%d,%d)" % (y, x))
+                    continue
+                if ii(x, y) > fg_int:
+                    new_image[y][x] = bg
+                else:
+                    new_image[y][x] = fg
+
+    # blur a bit to improve ocr accuracy
+    new_image = cv2.blur(new_image, (2, 2))
+    cv2.imwrite(output_file, new_image)
     if DEBUG:
-        print( "FG Intensity for #%d = %d" % (index_, fg_int))
-
-    # Find the intensity of three pixels going around the
-    # outside of each corner of the bounding box to determine
-    # the background intensity
-    x_, y_, width, height = box
-    bg_int = \
-        [
-            # bottom left corner 3 pixels
-            ii(x_ - 1, y_ - 1),
-            ii(x_ - 1, y_),
-            ii(x_, y_ - 1),
-
-            # bottom right corner 3 pixels
-            ii(x_ + width + 1, y_ - 1),
-            ii(x_ + width, y_ - 1),
-            ii(x_ + width + 1, y_),
-
-            # top left corner 3 pixels
-            ii(x_ - 1, y_ + height + 1),
-            ii(x_ - 1, y_ + height),
-            ii(x_, y_ + height + 1),
-
-            # top right corner 3 pixels
-            ii(x_ + width + 1, y_ + height + 1),
-            ii(x_ + width, y_ + height + 1),
-            ii(x_ + width + 1, y_ + height)
-        ]
-
-    # Find the median of the background
-    # pixels determined above
-    bg_int = np.median(bg_int)
-
-    if DEBUG:
-        print( "BG Intensity for #%d = %s" % (index_, repr(bg_int)))
-
-    # Determine if the box should be inverted
-    if fg_int >= bg_int:
-        fg = 255
-        bg = 0
-    else:
-        fg = 0
-        bg = 255
-
-        # Loop through every pixel in the box and color the
-        # pixel accordingly
-    for x in range(x_, x_ + width):
-        for y in range(y_, y_ + height):
-            if y >= img_y or x >= img_x:
-                if DEBUG:
-                    print( "pixel out of bounds (%d,%d)" % (y, x))
-                continue
-            if ii(x, y) > fg_int:
-                new_image[y][x] = bg
-            else:
-                new_image[y][x] = fg
-
-# blur a bit to improve ocr accuracy
-new_image = cv2.blur(new_image, (2, 2))
-cv2.imwrite(output_file, new_image)
-if DEBUG:
-    cv2.imwrite('edges.png', edges)
-    cv2.imwrite('processed.png', processed)
-    cv2.imwrite('rejected.png', rejected)
+        cv2.imwrite('edges.png', edges)
+        cv2.imwrite('processed.png', processed)
+        cv2.imwrite('rejected.png', rejected)

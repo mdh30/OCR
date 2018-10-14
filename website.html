@@ -5,35 +5,49 @@
 	<style type="text/css"></style>
 </head>
 <body>
-	<center>
-	<input type="file" onchange="previewFile()"><br><br>
-	<img src="" height="200" alt="Image preview">
-	<center>
+	
+    <center>
+	<input id="inputFileToLoad" type="file" onchange="encodeImageFileAsURL();" />
+    <div id="imgTest"></div>
+    <p id="ocrOutput">OCR Result</p>
+    </center>
+    <script type='text/javascript'>
+    function encodeImageFileAsURL() {
 
+    var filesSelected = document.getElementById("inputFileToLoad").files;
+    
+    if (filesSelected.length > 0) {
 
+        var fileToLoad = filesSelected[0];
+        var fileReader = new FileReader();
 
-	<script type="text/javascript">
-	function previewFile(){
-       var preview = document.querySelector('img'); //selects the query named img
-       var file    = document.querySelector('input[type=file]').files[0]; //sames as here
-       var reader  = new FileReader();
+        fileReader.onload = function(fileLoadedEvent) {
 
-       reader.onloadend = function () {
-           preview.src = reader.result;
-       }
+        var srcData = fileLoadedEvent.target.result; // <--- data: base64
+        var newImage = document.createElement('img');
+        
+        newImage.src = srcData;
+        document.getElementById("imgTest").innerHTML = newImage.outerHTML;
+        
+        console.log(srcData);
 
-       if (file) {
-           reader.readAsDataURL(file); //reads the data as a URL
-       } else {
-           preview.src = "";
-       }
+        var request = new XMLHttpRequest();
 
-       
+        request.open('GET', "http:localhost:5000/ocr?img="+srcData, true);
+        request.onload = function(){
+        
+        var data = JSON.parse(this.response);
+        document.getElementById("ocrOutput").innerHTML = data.ocrText;
+        console.log(data.ocrText);
+        }
+        
+        request.send();
+    }
+    fileReader.readAsDataURL(fileToLoad);
+
+    }
   }
-
- 	 previewFile();  //calls the function named previewFile()
-  
-	</script>
+</script>
 
 </body>
 </html>
