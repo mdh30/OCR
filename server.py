@@ -25,7 +25,8 @@ def OCR():
         f.write(base64.decodebytes(img_data))
 
     process_img("raw_file.png", "processed_file.png")
-    response = json.dumps({'ocrText': img_text()})
+    text, data = img_text()
+    response = json.dumps({'ocrText': text, 'trans': data})
     return response
 
 if __name__ == '__main__':

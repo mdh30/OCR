@@ -10,6 +10,7 @@
 	<input id="inputFileToLoad" type="file" onchange="encodeImageFileAsURL();" />
     <div id="imgTest"></div>
     <p id="ocrOutput">OCR Result</p>
+    <p id="translate">Spanish text</p>
     </center>
     <script type='text/javascript'>
     function encodeImageFileAsURL() {
@@ -38,7 +39,10 @@
         
         var data = JSON.parse(this.response);
         document.getElementById("ocrOutput").innerHTML = data.ocrText;
+        document.getElementById("translate").innerHTML = data.trans;
+
         console.log(data.ocrText);
+        console.log(data.trans);
         }
         
         request.send();
