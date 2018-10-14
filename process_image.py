@@ -108,7 +108,6 @@ def keep(contour):
 def keep_box(contour):
     
     global img, img_y, img_x
-
     xx, yy, w_, h_ = cv2.boundingRect(contour)
 
     # width and height need to be floats
