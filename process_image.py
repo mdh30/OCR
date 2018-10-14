@@ -106,6 +106,7 @@ def keep(contour):
 # Whether we should keep the containing box of this
 # contour based on it's shape
 def keep_box(contour):
+    global img, img_y, img_x
     xx, yy, w_, h_ = cv2.boundingRect(contour)
 
     # width and height need to be floats
@@ -152,9 +153,15 @@ def include_box(index, h_, contour):
         print( "\t keeping")
     return True
 
+img = None
+img_y = None
+img_x = None
+contours = None
 
 # Main function to call
 def process_img(input_file, output_file):
+
+    global img, img_y, img_x, contours
 
     # Load the image
     orig_img = cv2.imread(input_file)
