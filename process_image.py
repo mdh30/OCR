@@ -106,6 +106,7 @@ def keep(contour):
 # Whether we should keep the containing box of this
 # contour based on it's shape
 def keep_box(contour):
+    
     global img, img_y, img_x
     xx, yy, w_, h_ = cv2.boundingRect(contour)
 
